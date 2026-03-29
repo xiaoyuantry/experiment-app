@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二手商品定价实验 - 模式B（重点推理型）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #2c3e50; --accent: #e67e22; --success: #27ae60;
+            --danger: #e74c3c; --light: #ecf0f1; --dark: #1a252f;
+            --text: #2c3e50; --card-bg: #ffffff;
+        }
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            min-height: 100vh; color: var(--text); line-height: 1.6; padding: 20px;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        .card {
+            background: var(--card-bg); border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); padding: 32px; margin-bottom: 20px;
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        h1 { font-size: 1.6rem; color: var(--primary); margin-bottom: 8px; }
+        h2 { font-size: 1.3rem; color: var(--primary); margin-bottom: 16px; }
+        h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 12px; }
+        .subtitle { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 20px; }
+        .badge {
+            display: inline-block; background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            color: white; padding: 6px 16px; border-radius: 20px;
+            font-size: 0.85rem; margin-bottom: 16px;
+        }
+        .btn {
+            display: inline-block; padding: 14px 32px; border: none; border-radius: 10px;
+            font-size: 1rem; cursor: pointer; transition: all 0.3s ease; font-weight: 600;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #d35400; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); }
+        .btn-danger { background: #95a5a6; color: white; }
+        .btn-danger:hover { background: #7f8c8d; transform: translateY(-2px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        .btn-full { width: 100%; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--primary); }
+        input[type="number"], input[type="text"], select {
+            width: 100%; padding: 14px 18px; border: 2px solid #dfe6e9;
+            border-radius: 10px; font-size: 1rem; transition: border-color 0.3s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+        .product-card {
+            background: #f8f9fa; border-radius: 12px; padding: 24px;
+            margin-bottom: 20px; border-left: 4px solid var(--accent);
+        }
+        .product-title {
+            font-size: 1.1rem; font-weight: 600; color: var(--primary);
+            margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+        }
+        .product-info { display: grid; gap: 8px; font-size: 0.9rem; }
+        .info-row { display: flex; gap: 8px; }
+        .info-label { font-weight: 500; color: #7f8c8d; min-width: 70px; }
+        .info-value { flex: 1; }
+        .ai-response {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            color: white; border-radius: 12px; padding: 24px; margin: 20px 0;
+        }
+        .ai-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 16px; padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .ai-avatar {
+            width: 40px; height: 40px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+        .ai-name { font-weight: 600; font-size: 1.1rem; }
+        .ai-conclusion {
+            background: rgba(255,255,255,0.15); border-radius: 10px;
+            padding: 20px; text-align: center; margin-bottom: 16px;
+        }
+        .ai-conclusion .label { font-size: 0.9rem; opacity: 0.9; margin-bottom: 4px; }
+        .ai-conclusion .price { font-size: 2rem; font-weight: 700; }
+        .ai-reasoning {
+            background: rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; margin-top: 12px;
+        }
+        .ai-reasoning-title {
+            font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+        }
+        .reasoning-point {
+            padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9rem; display: flex; align-items: flex-start; gap: 8px;
+        }
+        .reasoning-point:last-child { border-bottom: none; }
+        .reasoning-icon { color: #f39c12; font-weight: bold; }
+        .input-group { display: flex; align-items: center; gap: 12px; }
+        .input-group input { flex: 1; }
+        .input-group .unit { font-size: 1.1rem; color: #7f8c8d; font-weight: 500; }
+        .progress-bar { height: 6px; background: #dfe6e9; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--success)); border-radius: 3px; transition: width 0.3s ease; }
+        .result-card {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white; border-radius: 12px; padding: 24px; text-align: center;
+        }
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-item { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; }
+        .stat-item .label { font-size: 0.85rem; opacity: 0.8; margin-bottom: 4px; }
+        .stat-item .value { font-size: 1.3rem; font-weight: 700; }
+        .stat-item .value.highlight { color: #f39c12; }
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .choice-display {
+            background: #fff3cd; border: 2px solid #ffc107; border-radius: 10px;
+            padding: 16px; text-align: center; margin: 16px 0; font-weight: 600; color: #856404;
+        }
+        .scale-item {
+            background: #f8f9fa; border-radius: 10px; padding: 20px;
+            margin-bottom: 16px; border-left: 4px solid var(--accent);
+        }
+        .scale-item .question { font-weight: 600; margin-bottom: 12px; color: var(--primary); }
+        .scale-item .question-num {
+            display: inline-block; background: var(--accent); color: white;
+            width: 24px; height: 24px; border-radius: 50%; text-align: center;
+            line-height: 24px; font-size: 0.8rem; margin-right: 8px;
+        }
+        .likert-scale { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+        .likert-option { flex: 1; min-width: 60px; text-align: center; }
+        .likert-option input[type="radio"] { display: none; }
+        .likert-option label {
+            display: block; padding: 10px 8px; background: #e9ecef; border-radius: 8px;
+            cursor: pointer; font-size: 0.85rem; font-weight: normal; transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .likert-option input[type="radio"]:checked + label {
+            background: var(--accent); color: white; border-color: var(--primary);
+        }
+        .likert-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #7f8c8d; margin-top: 6px; }
+        .section-title {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 20px;
+        }
+        .info-card { background: #e8f4f8; border: 2px dashed #3498db; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            .card { padding: 20px; }
+            .btn-group { flex-direction: column; }
+            .btn { width: 100%; text-align: center; }
+            .stat-grid { grid-template-columns: 1fr; }
+            .likert-scale { flex-wrap: wrap; }
+            .likert-option { min-width: calc(33% - 8px); margin-bottom: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 欢迎页 -->
+        <div id="page-welcome" class="card">
+            <div class="badge">🤖 模式B：重点推理型</div>
+            <h1>二手商品定价决策实验</h1>
+            <p class="subtitle">本实验探究人类在AI辅助下如何做出商品定价决策</p>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3>实验说明</h3>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>您将评估 <strong>5个二手商品</strong> 的合理售价</li>
+                    <li>每个商品，先给出您的初始估价</li>
+                    <li>然后选择<strong>"查看AI建议"</strong>或<strong>"放弃AI建议"</strong></li>
+                    <li>查看AI建议后，可选择是否修改估价</li>
+                    <li>完成定价任务后，需完成一份简短问卷</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="startExperiment()">开始实验</button>
+        </div>
+
+        <!-- 基本信息页 -->
+        <div id="page-demographics" class="card hidden">
+            <div class="section-title">
+                <h2>📋 基本信息</h2>
+                <p style="opacity: 0.9; font-size: 0.9rem;">请填写以下基本信息（所有选项仅用于研究统计）</p>
+            </div>
+            <div class="form-group">
+                <label>性别：</label>
+                <select id="gender">
+                    <option value="">请选择</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>年龄：</label>
+                <input type="number" id="age" min="18" max="80" placeholder="请输入年龄">
+            </div>
+            <div class="form-group">
+                <label>学历：</label>
+                <select id="education">
+                    <option value="">请选择</option>
+                    <option value="高中及以下">高中及以下</option>
+                    <option value="大专">大专</option>
+                    <option value="本科">本科</option>
+                    <option value="硕士">硕士</option>
+                    <option value="博士">博士</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>专业背景：</label>
+                <input type="text" id="major" placeholder="如：计算机、经济学、心理学等">
+            </div>
+            <div class="form-group">
+                <label>您使用电脑/手机的频率：</label>
+                <select id="computerFrequency">
+                    <option value="">请选择</option>
+                    <option value="很少">很少</option>
+                    <option value="偶尔">偶尔</option>
+                    <option value="经常">经常</option>
+                    <option value="非常频繁">非常频繁</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>您使用AI工具（如ChatGPT、文心一言等）的频率：</label>
+                <select id="aiUsageFrequency">
+                    <option value="">请选择</option>
+                    <option value="从未使用">从未使用</option>
+                    <option value="偶尔使用">偶尔使用</option>
+                    <option value="经常使用">经常使用</option>
+                    <option value="每天使用">每天使用</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="submitDemographics()">继续</button>
+        </div>
+
+        <!-- AI介绍页 -->
+        <div id="page-ai-intro" class="card hidden">
+            <div class="section-title">
+                <h2>🤖 关于本实验的AI助手</h2>
+            </div>
+            
+            <div class="info-card">
+                <p style="line-height: 1.8; margin-bottom: 16px;">
+                    本实验中的"AI助手"指的是<strong>人工智能对话助手</strong>，例如：
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;">
+                    <span style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px;">🥜 豆包</span>
+                    <span style="background: #27ae60; color: white; padding: 8px 16px; border-radius: 20px;">💬 ChatGPT</span>
+                    <span style="background: #e74c3c; color: white; padding: 8px 16px; border-radius: 20px;">🔍 DeepSeek</span>
+                    <span style="background: #9b59b6; color: white; padding: 8px 16px; border-radius: 20px;">💡 kimi</span>
+                </div>
+                <p style="line-height: 1.8;">
+                    这些AI助手可以<strong>根据您提供的信息，给出商品定价建议</strong>。您可以参考AI的建议，也可以坚持自己的判断。
+                </p>
+            </div>
+
+            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #856404;"><strong>⏱️ 时间说明：</strong> 本系统<strong>不限制</strong>您查看AI建议的时间，您可以随时查看、反复阅读AI的建议后再做出决策。</p>
+            </div>
+
+            <button class="btn btn-primary btn-full" onclick="startTasks()">开始定价任务</button>
+        </div>
+
+        <!-- 任务页 -->
+        <div id="page-task" class="card hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+            </div>
+            <div id="product-display"></div>
+            <div id="step-initial">
+                <h2>📝 第 <span id="task-num">1</span> 个商品</h2>
+                <p class="subtitle">请根据商品信息，给出您认为合理的售价</p>
+                <div class="form-group">
+                    <label>您的估价（元）：</label>
+                    <div class="input-group">
+                        <input type="number" id="initial-price" min="0" max="100000" placeholder="请输入金额">
+                        <span class="unit">元</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="goToChoice()">确认初始估价</button>
+            </div>
+            <div id="step-choice" class="hidden">
+                <h2>🤔 您要查看AI的建议吗？</h2>
+                <p class="subtitle">请决定是否查看AI的估价建议</p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="viewAI()">👁️ 查看AI建议</button>
+                    <button class="btn btn-danger" onclick="skipAI()">🚫 放弃AI建议</button>
+                </div>
+            </div>
+            <div id="step-ai" class="hidden"></div>
+            <div id="step-final" class="hidden">
+                <h2>📝 最终决策</h2>
+                <p class="subtitle">您可以参考AI的建议，也可以坚持自己的判断</p>
+                <div class="choice-display" id="choice-result">您已查看AI建议</div>
+                <div class="form-group">
+                    <label>您的最终估价（元）：</label>
+                    <div class="input-group">
+                        <input type="number" id="final-price" min="0" max="100000" placeholder="请输入金额">
+                        <span class="unit">元</span>
+                    </div>
+                </div>
+                <button class="btn btn-success btn-full" onclick="submitTask()">提交并继续</button>
+            </div>
+        </div>
+
+        <!-- 算法厌恶量表页 -->
+        <div id="page-algorithm-aversion" class="card hidden">
+            <div class="section-title">
+                <h2>📊 算法厌恶问卷</h2>
+                <p style="opacity: 0.9; font-size: 0.9rem;">请根据您在刚才实验中的感受，选择最符合您意见的选项</p>
+            </div>
+            <div id="aversion-questions"></div>
+            <button class="btn btn-primary btn-full mt-4" onclick="submitAversionScale()">提交问卷</button>
+        </div>
+
+        <!-- 认知负荷量表页 -->
+        <div id="page-cognitive-load" class="card hidden">
+            <div class="section-title">
+                <h2>⚡ 认知负荷问卷</h2>
+                <p style="opacity: 0.9; font-size: 0.9rem;">请评估您在完成任务过程中的认知负荷程度</p>
+            </div>
+            <div id="cognitve-load-questions"></div>
+            <button class="btn btn-primary btn-full mt-4" onclick="submitCognitiveLoadScale()">提交问卷</button>
+        </div>
+
+        <!-- 结果页 -->
+        <div id="page-result" class="card hidden">
+            <h2>📊 实验完成</h2>
+            <div class="result-card">
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="label">查看AI建议次数</div>
+                        <div class="value highlight" id="stat-viewed">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">放弃AI建议次数</div>
+                        <div class="value" id="stat-skipped">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">修改估价次数</div>
+                        <div class="value highlight" id="stat-changed">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">坚持原估价次数</div>
+                        <div class="value" id="stat-unchanged">0</div>
+                    </div>
+                </div>
+            </div>
+            <div style="background: #d4edda; border: 2px solid #28a745; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center;">
+                <h3 style="color: #155724; margin-bottom: 8px;">✅ 实验完成！</h3>
+                <p style="color: #155724;">感谢您参与本次实验</p>
+            </div>
+
+            <div id="upload-status" class="mt-4" style="text-align: center;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ====== 数据收集服务器配置 ======
+        // 选择一种部署方式：
+        
+        // 方式1：本地服务器（仅限同一WiFi）
+        // 运行 backend/server.py，填入: "http://localhost:8080/save"
+        
+        // 方式2：GAS在线部署（推荐，互联网可用）
+        // 部署步骤见 backend/GAS部署指南.md
+        // 填入格式: "https://script.google.com/macros/s/xxx/exec"
+        
+        const SERVER_URL = "https://script.google.com/macros/s/AKfycbxaCbOCDN3d8D7qsAZ8JLDarva6xjek1w5hfYXeOAncsZrOqDSbdYFurKzA0Llui_N3/exec";
+        // =========================================
+
+        const products = [
+            { id: 1, icon: "📱", name: "iPhone 14 Pro Max 256GB", details: [
+                { label: "购入时间", value: "2023年3月（约21个月）" },{ label: "保修", value: "已过保" },
+                { label: "屏幕", value: "无划痕，完好" },{ label: "机身", value: "边框3处轻微划痕" },
+                { label: "电池", value: "健康度87%" },{ label: "功能", value: "全部正常" },
+                { label: "配件", value: "原装齐全" }
+            ], aiPrice: 4850, reasoning: [
+                "📱 苹果手机保值率高，iPhone 14 Pro Max 是旗舰机型",
+                "📅 已使用21个月，电池健康度87%，属于正常损耗范围",
+                "🔧 边框有轻微划痕，但屏幕完好，功能正常",
+                "💰 参考同型号市场价，预估4800-5000元区间" 
+            ]},
+            { id: 2, icon: "💻", name: "MacBook Pro 14\" M2 Pro", details: [
+                { label: "购入时间", value: "2023年6月（约18个月）" },{ label: "保修", value: "已过保" },
+                { label: "A面", value: "1处明显划痕，左上角磕碰" },{ label: "屏幕", value: "完美，无划痕" },
+                { label: "键盘", value: "正常，无油光" },{ label: "功能", value: "全部正常" },
+                { label: "配件", value: "原装+鼠标" }
+            ], aiPrice: 8200, reasoning: [
+                "💻 MacBook Pro 14寸 M2 Pro 配置高，需求量大",
+                "🔧 A面有明显划痕和磕碰，会影响价格约1000-1500元",
+                "✨ 屏幕和键盘完美，功能正常，整体成色尚可",
+                "💰 原价约15000元，使用18个月折旧后约8000-8500元" 
+            ]},
+            { id: 3, icon: "🎮", name: "Nintendo Switch OLED", details: [
+                { label: "购入时间", value: "2022年1月（约26个月）" },{ label: "保修", value: "已过保" },
+                { label: "主机", value: "成色较新" },{ label: "手柄", value: "Joy-Con漂移问题" },
+                { label: "底座", value: "正常" },{ label: "功能", value: "正常" },
+                { label: "配件", value: "原装+2个游戏卡带" }
+            ], aiPrice: 1450, reasoning: [
+                "🎮 Switch OLED 是最新版本，屏幕显示效果最好",
+                "⚠️ Joy-Con漂移是Switch常见问题，维修成本约200元",
+                "📦 含2个游戏卡带，可增加约150-200元价值",
+                "💰 考虑手柄问题，预计1300-1500元" 
+            ]},
+            { id: 4, icon: "🚗", name: "大众POLO 2020款 1.5L", details: [
+                { label: "上牌时间", value: "2020年8月（4.5年）" },{ label: "里程", value: "6.8万公里" },
+                { label: "车况", value: "1次小事故（左侧剐蹭）" },{ label: "外观", value: "多处轻微划痕" },
+                { label: "内饰", value: "轻微磨损" },{ label: "发动机", value: "正常" },
+                { label: "保养", value: "4S店记录完整" }
+            ], aiPrice: 42000, reasoning: [
+                "🚗 大众POLO是热门车型，配件便宜，维修方便",
+                "📅 4.5年车龄，6.8万公里，属于正常行驶里程",
+                "⚠️ 有过一次事故记录，会影响估值约3000-5000元",
+                "🔧 保养记录完整，发动机正常，可靠性较好",
+                "💰 预估42000-45000元（具体需看车况）" 
+            ]},
+            { id: 5, icon: "📷", name: "佳能 EOS R6 Mark II + 镜头", details: [
+                { label: "购入时间", value: "2023年9月（约12个月）" },{ label: "保修", value: "剩余8个月" },
+                { label: "机身", value: "98新，手柄轻微油光" },{ label: "镜头", value: "完美，无霉无雾" },
+                { label: "快门", value: "1.2万次（很低）" },{ label: "功能", value: "正常" },
+                { label: "配件", value: "原包装+SD卡" }
+            ], aiPrice: 14800, reasoning: [
+                "📷 佳能R6 Mark II 是最新全画幅相机，性能出色",
+                "� 快门仅1.2万次，使用频率很低，成色很新",
+                "✨ 镜头完美，机身有轻微使用痕迹",
+                "🎁 含原包装和SD卡，配件齐全",
+                "💰 新机约18000元，使用一年约14000-15000元" 
+            ]}
+        ];
+
+        const aversionQuestions = [
+            { id: "A1", text: "在此任务中与AI工具互动和使用AI让我感到不安", reverse: false },
+            { id: "A2", text: "我质疑AI工具在决策时会优先考虑人类的利益", reverse: false },
+            { id: "A3", text: "我怀疑AI工具输出的真实性", reverse: false },
+            { id: "A4", text: "我怀疑AI工具在此任务中的能力", reverse: false },
+            { id: "A5", text: "AI工具难以对其输出的价格建议负责", reverse: false },
+            { id: "A6", text: "如果有人类专家，我将参考他/她的建议", reverse: false },
+            { id: "A7", text: "与人类决策相比，AI工具存在更大不确定性", reverse: false },
+            { id: "A8", text: "相比于AI工具，人类专家的意见更能让我接受", reverse: false },
+            { id: "A9", text: "我未能理解任务中AI输出的建议依据", reverse: false },
+            { id: "A10", text: "我不关心AI工具推理过程是否清晰", reverse: false }
+        ];
+
+        const cognitiveLoadQuestions = [
+            { id: "C1", text: "我在完成这项任务时投入的心理努力水平", type: "effort" },
+            { id: "C2", text: "此次任务对我来说其复杂程度为", type: "complexity" },
+            { id: "C3", text: "我在刚才的任务中感到了烦躁、紧张或恼怒", type: "frustration" },
+            { id: "C4", text: "AI的推理使相关信息的处理变得更困难", type: "difficulty" },
+            { id: "C5", text: "AI的呈现解释的方式令人困惑", type: "confusion" }
+        ];
+
+        let state = {
+            currentTask: 0, responses: [], aversionResponses: {},
+            cognitiveLoadResponses: {}, demographics: {}, startTime: null
+        };
+
+        function startExperiment() {
+            state.tasks = [...products].sort(() => Math.random() - 0.5);
+            state.startTime = new Date();
+            document.getElementById('page-welcome').classList.add('hidden');
+            document.getElementById('page-demographics').classList.remove('hidden');
+        }
+
+        function submitDemographics() {
+            state.demographics = {
+                gender: document.getElementById('gender').value,
+                age: document.getElementById('age').value,
+                education: document.getElementById('education').value,
+                major: document.getElementById('major').value,
+                computerFrequency: document.getElementById('computerFrequency').value,
+                aiUsageFrequency: document.getElementById('aiUsageFrequency').value
+            };
+            if (!state.demographics.gender || !state.demographics.age) {
+                alert('请填写性别和年龄'); return;
+            }
+            document.getElementById('page-demographics').classList.add('hidden');
+            document.getElementById('page-ai-intro').classList.remove('hidden');
+        }
+
+        function startTasks() {
+            document.getElementById('page-ai-intro').classList.add('hidden');
+            document.getElementById('page-task').classList.remove('hidden');
+            renderAversionQuestions(); renderCognitiveLoadQuestions(); renderTask();
+        }
+
+        function renderAversionQuestions() {
+            const container = document.getElementById('aversion-questions');
+            container.innerHTML = aversionQuestions.map(q => `
+                <div class="scale-item">
+                    <div class="question"><span class="question-num">${q.id}</span>${q.text}</div>
+                    <div class="likert-scale">
+                        ${[1,2,3,4,5,6,7].map(v => `
+                            <div class="likert-option">
+                                <input type="radio" name="aversion_${q.id}" id="aversion_${q.id}_${v}" value="${v}">
+                                <label for="aversion_${q.id}_${v}">${v}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="likert-labels"><span>完全不同意</span><span>完全同意</span></div>
+                </div>
+            `).join('');
+        }
+
+        function renderCognitiveLoadQuestions() {
+            const container = document.getElementById('cognitve-load-questions');
+            container.innerHTML = cognitiveLoadQuestions.map((q, idx) => {
+                if (idx < 2) {
+                    return `
+                        <div class="scale-item">
+                            <div class="question"><span class="question-num">${q.id}</span>${q.text}</div>
+                            <div class="likert-scale">
+                                ${[1,2,3,4,5,6,7,8,9].map(v => `
+                                    <div class="likert-option">
+                                        <input type="radio" name="cognitive_${q.id}" id="cognitive_${q.id}_${v}" value="${v}">
+                                        <label for="cognitive_${q.id}_${v}">${v}</label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="likert-labels"><span>非常低</span><span>非常高</span></div>
+                        </div>`;
+                } else {
+                    return `
+                        <div class="scale-item">
+                            <div class="question"><span class="question-num">${q.id}</span>${q.text}</div>
+                            <div class="likert-scale">
+                                ${[1,2,3,4,5,6,7].map(v => `
+                                    <div class="likert-option">
+                                        <input type="radio" name="cognitive_${q.id}" id="cognitive_${q.id}_${v}" value="${v}">
+                                        <label for="cognitive_${q.id}_${v}">${v}</label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="likert-labels"><span>完全不符合</span><span>完全符合</span></div>
+                        </div>`;
+                }
+            }).join('');
+        }
+
+        function submitAversionScale() {
+            let allAnswered = true;
+            aversionQuestions.forEach(q => {
+                const selected = document.querySelector(`input[name="aversion_${q.id}"]:checked`);
+                if (selected) state.aversionResponses[q.id] = parseInt(selected.value);
+                else allAnswered = false;
+            });
+            if (!allAnswered) { alert('请回答所有问题'); return; }
+            document.getElementById('page-algorithm-aversion').classList.add('hidden');
+            document.getElementById('page-cognitive-load').classList.remove('hidden');
+        }
+
+        function submitCognitiveLoadScale() {
+            let allAnswered = true;
+            cognitiveLoadQuestions.forEach(q => {
+                const selected = document.querySelector(`input[name="cognitive_${q.id}"]:checked`);
+                if (selected) state.cognitiveLoadResponses[q.id] = parseInt(selected.value);
+                else allAnswered = false;
+            });
+            if (!allAnswered) { alert('请回答所有问题'); return; }
+            document.getElementById('page-cognitive-load').classList.add('hidden');
+            document.getElementById('page-result').classList.remove('hidden');
+            showResult();
+        }
+
+        function renderTask() {
+            const task = state.tasks[state.currentTask];
+            document.getElementById('progress-fill').style.width = (state.currentTask / 5) * 100 + '%';
+            document.getElementById('task-num').textContent = state.currentTask + 1;
+            document.getElementById('product-display').innerHTML = `
+                <div class="product-card">
+                    <div class="product-title"><span style="font-size:1.3rem;">${task.icon}</span><span>${task.name}</span></div>
+                    <div class="product-info">${task.details.map(d => `<div class="info-row"><span class="info-label">${d.label}：</span><span class="info-value">${d.value}</span></div>`).join('')}</div>
+                </div>`;
+            document.getElementById('step-initial').classList.remove('hidden');
+            document.getElementById('step-choice').classList.add('hidden');
+            document.getElementById('step-ai').classList.add('hidden');
+            document.getElementById('step-final').classList.add('hidden');
+            document.getElementById('initial-price').value = ''; document.getElementById('initial-price').focus();
+        }
+
+        function goToChoice() {
+            const initialPrice = document.getElementById('initial-price').value;
+            if (!initialPrice || initialPrice < 0) { alert('请输入有效的估价'); return; }
+            const task = state.tasks[state.currentTask];
+            state.responses.push({ taskId: task.id, productName: task.name, initialPrice: parseInt(initialPrice), aiPrice: task.aiPrice, viewedAI: null, finalPrice: null, changed: null });
+            document.getElementById('step-initial').classList.add('hidden');
+            document.getElementById('step-choice').classList.remove('hidden');
+        }
+
+        // B型：展示关键思考要点
+        function viewAI() {
+            const task = state.tasks[state.currentTask];
+            state.responses[state.responses.length - 1].viewedAI = true;
+            const aiHTML = `
+                <div class="ai-response">
+                    <div class="ai-header"><div class="ai-avatar">🤖</div><div class="ai-name">AI估价助手</div></div>
+                    <div class="ai-conclusion"><div class="label">建议售价</div><div class="price">${task.aiPrice.toLocaleString()} 元</div></div>
+                    <div class="ai-reasoning">
+                        <div class="ai-reasoning-title">💡 关键考虑因素</div>
+                        ${task.reasoning.map(r => `<div class="reasoning-point"><span class="reasoning-icon">▸</span><span>${r}</span></div>`).join('')}
+                    </div>
+                    <button class="btn btn-success btn-full mt-4" onclick="proceedToFinal()">✅ 已阅读完毕，继续决策</button>
+                </div>`;
+            document.getElementById('step-choice').classList.add('hidden');
+            document.getElementById('step-ai').innerHTML = aiHTML;
+            document.getElementById('step-ai').classList.remove('hidden');
+        }
+
+        function proceedToFinal() {
+            showFinalStep(true);
+        }
+
+        function skipAI() {
+            const lastResponse = state.responses[state.responses.length - 1];
+            lastResponse.viewedAI = false; lastResponse.finalPrice = lastResponse.initialPrice; lastResponse.changed = false;
+            nextTask();
+        }
+
+        function showFinalStep(viewed) {
+            document.getElementById('step-ai').classList.add('hidden');
+            document.getElementById('step-final').classList.remove('hidden');
+            if (viewed) { document.getElementById('choice-result').className = 'choice-display'; document.getElementById('choice-result').innerHTML = '✅ 您已查看AI建议'; }
+            document.getElementById('final-price').value = ''; document.getElementById('final-price').focus();
+        }
+
+        function submitTask() {
+            const finalPrice = document.getElementById('final-price').value;
+            if (!finalPrice || finalPrice < 0) { alert('请输入有效的最终估价'); return; }
+            const lastResponse = state.responses[state.responses.length - 1];
+            lastResponse.finalPrice = parseInt(finalPrice);
+            lastResponse.changed = lastResponse.finalPrice !== lastResponse.initialPrice;
+            nextTask();
+        }
+
+        function nextTask() {
+            state.currentTask++;
+            if (state.currentTask >= 5) {
+                document.getElementById('page-task').classList.add('hidden');
+                document.getElementById('page-algorithm-aversion').classList.remove('hidden');
+            } else { renderTask(); }
+        }
+
+        function showResult() {
+            let viewed = 0, changed = 0;
+            state.responses.forEach(r => { if (r.viewedAI === true) viewed++; if (r.changed) changed++; });
+            document.getElementById('stat-viewed').textContent = viewed;
+            document.getElementById('stat-skipped').textContent = state.responses.length - viewed;
+            document.getElementById('stat-changed').textContent = changed;
+            document.getElementById('stat-unchanged').textContent = state.responses.length - changed;
+            
+            // 显示下载数据按钮
+            document.getElementById('upload-status').innerHTML = `
+                <div style="margin-top: 20px;">
+                    <button onclick="downloadData()" style="
+                        background: #3498db;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        font-size: 16px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        margin: 5px;
+                    ">📥 下载实验数据</button>
+                </div>
+                <p style="color: #7f8c8d; margin-top: 15px;">请点击上方按钮下载数据，并将文件发送给研究者</p>
+            `;
+        }
+        
+        // 下载数据为CSV文件
+        function downloadData() {
+            const endTime = new Date();
+            const totalTime = Math.round((endTime - state.startTime) / 1000);
+            let viewedCount = 0, changedCount = 0;
+            state.responses.forEach(r => { if (r.viewedAI === true) viewedCount++; if (r.changed) changedCount++; });
+            
+            const demo = state.demographics;
+            let csv = '字段,值\n';
+            csv += '实验类型,B\n';
+            csv += '性别,' + (demo.gender || '') + '\n';
+            csv += '年龄,' + (demo.age || '') + '\n';
+            csv += '学历,' + (demo.education || '') + '\n';
+            csv += '专业,' + (demo.major || '') + '\n';
+            csv += '电脑使用频率,' + (demo.computerFrequency || '') + '\n';
+            csv += 'AI使用频率,' + (demo.aiUsageFrequency || '') + '\n';
+            csv += '总用时(秒),' + totalTime + '\n';
+            csv += '\n商品信息\n';
+            csv += '商品序号,初始价,AI建议价,最终价,是否查看AI,是否修改,修改幅度\n';
+            
+            state.responses.forEach((r, i) => {
+                csv += (i+1) + ',' + r.initialPrice + ',' + (r.viewedAI ? r.aiPrice : 'N/A') + ',' 
+                     + r.finalPrice + ',' + (r.viewedAI ? '查看' : '放弃') + ',' 
+                     + (r.changed ? '修改' : '坚持') + ',' + Math.abs(r.finalPrice - r.initialPrice) + '\n';
+            });
+            
+            csv += '\n统计信息\n';
+            csv += '查看AI次数,' + viewedCount + '\n';
+            csv += '放弃AI次数,' + (state.responses.length - viewedCount) + '\n';
+            csv += '修改估价次数,' + changedCount + '\n';
+            csv += '坚持估价次数,' + (state.responses.length - changedCount) + '\n';
+            
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '实验数据_B_' + new Date().toISOString().slice(0,10) + '.csv';
+            link.click();
+        }
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = '<p style="color: #3498db;">⏳ 正在提交数据...</p>';
+            
+            const endTime = new Date();
+            const totalTime = Math.round((endTime - state.startTime) / 1000);
+            let viewedCount = 0, changedCount = 0;
+            state.responses.forEach(r => { if (r.viewedAI === true) viewedCount++; if (r.changed) changedCount++; });
+            
+            const data = {
+                experimentType: 'B',
+                experimentMode: '重点推理型',
+                timestamp: new Date().toISOString(),
+                totalTime: totalTime,
+                demographics: state.demographics,
+                decisionData: state.responses.map(r => ({
+                    taskId: r.taskId,
+                    productName: r.productName,
+                    initialPrice: r.initialPrice,
+                    aiPrice: r.aiPrice,
+                    finalPrice: r.finalPrice,
+                    viewedAI: r.viewedAI,
+                    changed: r.changed,
+                    changeAmount: Math.abs(r.finalPrice - r.initialPrice)
+                })),
+                aversionScale: state.aversionResponses,
+                cognitiveLoadScale: state.cognitiveLoadResponses,
+                statistics: {
+                    viewedAICount: viewedCount,
+                    renouncedAICount: state.responses.length - viewedCount,
+                    changedCount: changedCount,
+                    persistedCount: state.responses.length - changedCount
+                }
+            };
+            
+            // 使用JSONP方式提交（解决跨域问题）
+            const callbackName = 'jsonp_callback_' + Date.now();
+            const jsonpUrl = SERVER_URL.replace('/exec', '/exec?callback=' + callbackName);
+            
+            // 创建回调函数
+            window[callbackName] = function(response) {
+                statusDiv.innerHTML = '<p style="color: #27ae60; font-weight: 600;">✅ 数据已成功提交！感谢您的参与</p>';
+                delete window[callbackName];
+                document.body.removeChild(script);
+            };
+            
+            // 创建script标签
+            const script = document.createElement('script');
+            script.src = jsonpUrl + '&data=' + encodeURIComponent(JSON.stringify(data));
+            script.onerror = function() {
+                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ 提交失败，请检查网络连接</p>';
+                delete window[callbackName];
+            };
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>

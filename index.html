@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二手商品定价实验</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 32px;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; margin-bottom: 10px; font-size: 24px; }
+        .subtitle { color: #7f8c8d; margin-bottom: 30px; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin: 12px 0;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .btn-a { background: #3498db; }
+        .btn-b { background: #9b59b6; }
+        .btn-c { background: #1abc9c; }
+        .info { margin-top: 25px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📊 二手商品定价实验</h1>
+            <p class="subtitle">欢迎参与AI辅助定价研究</p>
+            
+            <p style="margin-bottom: 15px; color: #2c3e50;">请选择其中一个版本开始实验：</p>
+            
+            <a href="type-a.html" class="btn btn-a">版本 A：目标导向型</a>
+            <a href="type-b.html" class="btn btn-b">版本 B：重点推理型</a>
+            <a href="type-c.html" class="btn btn-c">版本 C：详细演绎型</a>
+            
+            <div class="info">
+                <p>⚠️ 请勿同时参与多个版本</p>
+                <p>完成实验后请点击下载按钮保存数据</p>
+                <p>如有疑问请联系研究者</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
