@@ -606,6 +606,7 @@
         };
 
         function startExperiment() {
+            alert('按钮点击成功！正在进入下一步...');
             state.tasks = [...products].sort(() => Math.random() - 0.5);
             state.startTime = new Date();
             document.getElementById('page-welcome').classList.add('hidden');

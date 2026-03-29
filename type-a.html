@@ -325,7 +325,7 @@
                 </ul>
             </div>
 
-            <button class="btn btn-primary btn-full" onclick="startExperiment()">开始实验</button>
+            <button class="btn btn-primary btn-full" id="start-btn" onclick="console.log('点击了'); startExperiment()">开始实验</button>
         </div>
 
         <!-- 基本信息页 -->
@@ -632,6 +632,7 @@
         };
 
         function startExperiment() {
+            alert('按钮点击成功！正在进入下一步...');
             state.tasks = [...products].sort(() => Math.random() - 0.5);
             state.startTime = new Date();
             
